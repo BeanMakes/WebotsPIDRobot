@@ -152,9 +152,9 @@ print(dir(left_motor))
 timestep = 16
 
 # Actual robot pose:
-x, y, phi = 0, 0, 0
+x, y, phi = -4.65, -4.2, 0
 # Desired robot position:
-xd, yd = -1, 1
+xd, yd = -4, -5
 
 position_err, orientation_err = get_pose_error(xd, yd, x, y, phi)
 
@@ -165,9 +165,9 @@ e_acc = 0
 delta_t = 0.01
 
 # Controller gains:
-kp = 0.5
+kp = 1.0
 kd = 0.01
-ki = 0.1
+ki = 0.01
 
 print(f'Distance error    = {position_err} m.')
 print(f'Orientation error = {orientation_err} rad.')
@@ -186,7 +186,7 @@ right_motor.setPosition(float('inf'))
 left_motor.setVelocity(0.0)
 right_motor.setVelocity(0.0)
 print(dir(robot))
-
+gps = robot.getDevice("gps")
 while robot.step(32) != -1:
     print(f"Phi: {sensor.getRollPitchYaw()[2]}")
     
@@ -233,6 +233,7 @@ while robot.step(32) != -1:
     
     print(f"DeltaT: {deltaT}")
     phi = sensor.getRollPitchYaw()[2]
+    x, y = gps.getValues()[0], gps.getValues()[1]
     position_err, orientation_err = get_pose_error(xd, yd, x, y, phi)
     
     e = orientation_err
@@ -246,9 +247,12 @@ while robot.step(32) != -1:
     w_d, e_prev, e_acc = pid_controller(e, e_prev, e_acc, delta_t, kp, kd, ki)
     # left_motor.setVelocity(0)
     # right_motor.setVelocity(0)
-    wl_d, wr_d = wheel_speed_commands(0, w_d, 0.271756, 0.031)
+    wl_d, wr_d = wheel_speed_commands(0.2, w_d, 0.271756, 0.031)
     left_motor.setVelocity(wl_d)
     right_motor.setVelocity(wr_d)
+    if position_err <0.01:
+        left_motor.setVelocity(0)
+        right_motor.setVelocity(0)
     deltaT+=32 / 1000
     pass
 

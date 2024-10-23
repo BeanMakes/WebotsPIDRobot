@@ -30,6 +30,8 @@ timestep = int(robot.getBasicTimeStep())
 
 sensor = robot.getDevice("inertial unit")
 sensor.enable(timestep)
+gps = robot.getDevice("gps")
+gps.enable(timestep)
 
 left_motor, right_motor = robot.getDevice("left wheel motor"), robot.getDevice("right wheel motor")
 
@@ -78,8 +80,8 @@ def get_robot_speeds(wl, wr, R, D):
 
 pulses_per_turn = 72
 delta_t = 0.1  # time step in seconds
-encoderValues = [1506, 1515]  # Accumulated number of pulses for the left [0] and right [1] encoders.
-oldEncoderValues = [1500, 1500]     # Accumulated pulses for the left and right encoders in the previous step
+encoderValues = [507.9188, 507.9188]  # Accumulated number of pulses for the left [0] and right [1] encoders.
+oldEncoderValues = [507.9188, 507.9188]     # Accumulated pulses for the left and right encoders in the previous step
 
 wl, wr = get_wheels_speed(encoderValues, oldEncoderValues, pulses_per_turn, delta_t)
 
@@ -144,101 +146,53 @@ def pid_controller(e, e_prev, e_acc, delta_t, kp=1.0, kd=0, ki=0):
 
 # Main loop:
 # - perform simulation steps until Webots is stopping the controller
-deltaT = 32
-targetX = -4
-targetY = -4.2
+
+delta_t = 0.001
+e_acc = 0
 e_prev = 0
-print(dir(left_motor))
-timestep = 16
 
 # Actual robot pose:
-x, y, phi = -4.65, -4.2, 0
+x, y, phi = 0, 0, 0
+
+waypoints =[ [0.3,0.1], [-0.3,0.1]]
+currentWaypoint = 0
 # Desired robot position:
-xd, yd = -4, -5
+xd, yd = waypoints[currentWaypoint][0], waypoints[currentWaypoint][1]
 
 position_err, orientation_err = get_pose_error(xd, yd, x, y, phi)
 
 e = orientation_err
 e_prev = orientation_err*0.9
-e_acc = 0
-
-delta_t = 0.01
-
-# Controller gains:
-kp = 1.0
-kd = 0.01
-ki = 0.01
-
-print(f'Distance error    = {position_err} m.')
-print(f'Orientation error = {orientation_err} rad.')
 
 # Obtain the desired angular speed:
 w_d, e_prev, e_acc = pid_controller(e, e_prev, e_acc, delta_t, kp, kd, ki)
 
-print(f'Desired angular speed w_d = {w_d} rad/s.')
-print(f'Previous error = {e_prev} rad.')
-print(f'Accumulated error = {e_acc}.')
-
-# left_motor.target_position(-4.0)
-# right_motor.target_position(-4.0)
 left_motor.setPosition(float('inf'))
 right_motor.setPosition(float('inf'))
 left_motor.setVelocity(0.0)
 right_motor.setVelocity(0.0)
-print(dir(robot))
-gps = robot.getDevice("gps")
-while robot.step(32) != -1:
+
+
+d_max = 0.5
+d_min = 0.001
+u_max = 0.05
+
+timestep = 16
+
+
+# Controller gains:
+kp = 1.5
+kd = 0.9
+ki = 0.01
+while robot.step(16) != -1:
     print(f"Phi: {sensor.getRollPitchYaw()[2]}")
     
-    
-    # xpos = sensor.getValues()[0]
-    # ypos = sensor.getValues()[0]
-    
-    # x_err = targetX - xpos
-    # y_err = targetY - ypos
-
-    # Read the sensors:
-    # Enter here functions to read sensor data, like:
-    
-    # dist_err = np.sqrt(x_err**2 + y_err**2)
-    
-    # e = x_err
-
-    # P = kp * e                      # Proportional term; kp is the proportional gain
-    # I = e_acc + ki * e * deltaT    # Intergral term; ki is the integral gain
-    # D = kd * (e - e_prev)/deltaT   # Derivative term; kd is the derivative gain
-    
-    # output = P + I + D              # controller output
-    
-    # store values for the next iteration
-    # e_prev = e     # error value in the previous interation (to calculate the derivative term)
-    # e_acc = I      # accumulated error value (to calculate the integral term)
-
-    # Process sensor data here.
-    # Enter here functions to send actuator commands, like:
-    #  motor.setPosition(10.0)
-    # u_d = 16
-    # w_d = 16
-    # d = e
-    # wr_d = float((2 * u_d + d * w_d) / (2 * WHEEL_RADIUS))
-    # wl_d = float((2 * u_d - d * w_d) / (2 * WHEEL_RADIUS))
-    
-    # print(e)
-    
-    
-    # left_motor.setControlPID(P,I,D)
-    # right_motor.setControlPID(P,I,D)
-    
-    
-    
-    print(f"DeltaT: {deltaT}")
+    print(f"DeltaT: {delta_t}")
     phi = sensor.getRollPitchYaw()[2]
     x, y = gps.getValues()[0], gps.getValues()[1]
     position_err, orientation_err = get_pose_error(xd, yd, x, y, phi)
     
     e = orientation_err
-
-    # e = orientation_err
     
     print(f'Distance error    = {position_err} m.')
     print(f'Orientation error = {orientation_err} rad.')
@@ -247,13 +201,22 @@ while robot.step(32) != -1:
     w_d, e_prev, e_acc = pid_controller(e, e_prev, e_acc, delta_t, kp, kd, ki)
     # left_motor.setVelocity(0)
     # right_motor.setVelocity(0)
-    wl_d, wr_d = wheel_speed_commands(0.2, w_d, 0.271756, 0.031)
+    if position_err <= d_min and currentWaypoint < len(waypoints)-1:
+        currentWaypoint+=1
+        xd, yd = waypoints[currentWaypoint][0], waypoints[currentWaypoint][1]
+        u_ref = u_max
+    elif position_err > d_min:
+        u_ref = u_max
+    else:
+        u_ref = 0
+    print(f"u_ref: {u_ref}")
+    wl_d, wr_d = wheel_speed_commands(u_ref, w_d, 0.271756, 0.031)
     left_motor.setVelocity(wl_d)
     right_motor.setVelocity(wr_d)
-    if position_err <0.01:
-        left_motor.setVelocity(0)
-        right_motor.setVelocity(0)
-    deltaT+=32 / 1000
+    # if position_err <0.01:
+        # left_motor.setVelocity(0)
+        # right_motor.setVelocity(0)
+    delta_t+=16 / 1000
     pass
 
 # Enter here exit cleanup code.

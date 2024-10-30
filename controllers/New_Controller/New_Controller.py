@@ -17,11 +17,6 @@ WHEEL_RADIUS = 0.031
 AXLE_LENGTH = 0.271756
 ENCODER_RESOLUTION = 507.9188
 
-# PID algortithm: must be executed every delta_t seconds
-# The error is calculated as: e = desired_value - actual_value
-
-# target = 10
-
 # create the Robot instance.
 robot = Robot()
 
@@ -35,11 +30,6 @@ gps.enable(timestep)
 
 left_motor, right_motor = robot.getDevice("left wheel motor"), robot.getDevice("right wheel motor")
 
-
-
-kp = 1
-kd = 0.0
-ki = 1.05
 
 e_prev = 0     # error value in the previous interation (to calculate the derivative term)
 e_acc = 0      # accumulated error value (to calculate the integral term)
@@ -78,15 +68,15 @@ def get_robot_speeds(wl, wr, R, D):
     return u, w
 
 
-pulses_per_turn = 72
-delta_t = 0.1  # time step in seconds
-encoderValues = [507.9188, 507.9188]  # Accumulated number of pulses for the left [0] and right [1] encoders.
-oldEncoderValues = [507.9188, 507.9188]     # Accumulated pulses for the left and right encoders in the previous step
+# pulses_per_turn = 72
+# delta_t = 0.1  # time step in seconds
+# encoderValues = [507.9188, 507.9188]  # Accumulated number of pulses for the left [0] and right [1] encoders.
+# oldEncoderValues = [507.9188, 507.9188]     # Accumulated pulses for the left and right encoders in the previous step
 
-wl, wr = get_wheels_speed(encoderValues, oldEncoderValues, pulses_per_turn, delta_t)
+# wl, wr = get_wheels_speed(encoderValues, oldEncoderValues, pulses_per_turn, delta_t)
 
-print(f'Left wheel speed  = {wl} rad/s.')
-print(f'Right wheel speed = {wr} rad/s.')
+# print(f'Left wheel speed  = {wl} rad/s.')
+# print(f'Right wheel speed = {wr} rad/s.')
 
 def wheel_speed_commands(u_d, w_d, d, r):
     """Converts desired speeds to wheel speed commands"""
@@ -151,10 +141,15 @@ delta_t = 0.001
 e_acc = 0
 e_prev = 0
 
+# Controller gains:
+kp = 5
+kd = 2.5
+ki = 0.01
+
 # Actual robot pose:
 x, y, phi = 0, 0, 0
 
-waypoints =[ [0.3,0.1], [-0.3,0.1]]
+waypoints =[ [2,0], [5,5]]
 currentWaypoint = 0
 # Desired robot position:
 xd, yd = waypoints[currentWaypoint][0], waypoints[currentWaypoint][1]
@@ -174,16 +169,13 @@ right_motor.setVelocity(0.0)
 
 
 d_max = 0.5
-d_min = 0.001
-u_max = 0.05
+d_min = 0.5
+u_max = 8
 
 timestep = 16
 
 
-# Controller gains:
-kp = 1.5
-kd = 0.9
-ki = 0.01
+
 while robot.step(16) != -1:
     print(f"Phi: {sensor.getRollPitchYaw()[2]}")
     
@@ -208,7 +200,7 @@ while robot.step(16) != -1:
     elif position_err > d_min:
         u_ref = u_max
     else:
-        u_ref = 0
+        u_ref = position_err/u_max
     print(f"u_ref: {u_ref}")
     wl_d, wr_d = wheel_speed_commands(u_ref, w_d, 0.271756, 0.031)
     left_motor.setVelocity(wl_d)
@@ -220,3 +212,5 @@ while robot.step(16) != -1:
     pass
 
 # Enter here exit cleanup code.
+
+

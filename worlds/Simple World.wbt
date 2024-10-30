@@ -9,15 +9,17 @@ WorldInfo {
 }
 Viewpoint {
   orientation -0.5773502691896257 0.5773502691896257 0.5773502691896257 2.0944
-  position -2.411664226606831e-05 -2.411671045900964e-05 1.4710775204397923
+  position 4.496337503748121e-05 4.496350217726963e-05 25.901431711894308
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 RectangleArena {
+  floorSize 15 15
 }
 Khepera4 {
+  controller "New_Controller"
   turretSlot [
     InertialUnit {
     }

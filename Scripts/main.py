@@ -3,9 +3,12 @@ import RRT_Algorithm
 
 if __name__ == "__main__":
     start = [0, 0]
-    end = [3,4]
-    
-    obsticles = [[RRT_Algorithm.Node(0,1),RRT_Algorithm.Node(3,2)]]
+    end = [1,0]
+    box = [[RRT_Algorithm.Node(0.45,-1),RRT_Algorithm.Node(0.75,-1)],
+        [RRT_Algorithm.Node(0.45,1),RRT_Algorithm.Node(0.75,1)],
+        [RRT_Algorithm.Node(0.45,-1),RRT_Algorithm.Node(0.45,1)],
+        [RRT_Algorithm.Node(0.75,-1),RRT_Algorithm.Node(0.75,1)]]
+    obsticles = box
     rrt = RRT_Algorithm.RTT(obsticles)
 
     finalNode = rrt.findPath(start,end)
@@ -19,5 +22,8 @@ if __name__ == "__main__":
         finalNode = finalNode.previous
 
     print([pathX,pathY])
+    obsticlesPlotX = [node.x for points in obsticles for node in points ]
+    obsticlesPlotY = [node.y for points in obsticles for node in points]
     plt.plot(pathX,pathY)
+    plt.plot(obsticlesPlotX,obsticlesPlotY)
     plt.show()

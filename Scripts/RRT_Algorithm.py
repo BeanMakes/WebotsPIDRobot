@@ -119,7 +119,7 @@ class RTT:
             if self.isThereDirectPath(nearestNode, currentNode):
                 currentNode.previous = nearestNode
                 nodeList.append(currentNode)
-                if currentNode.x >= endGoal.x-1 and currentNode.x <= endGoal.x+1 and currentNode.y >= endGoal.y-1 and currentNode.y <= endGoal.y+1:
+                if currentNode.x >= endGoal.x-0.15 and currentNode.x <= endGoal.x+0.15 and currentNode.y >= endGoal.y-0.15 and currentNode.y <= endGoal.y+0.15:
                     done = True
             counter+=1
         return currentNode
